@@ -104,13 +104,19 @@ public:
 
 private:
     template<std::size_t cnt>
-    struct bracket_impl
+    class bracket_impl
     {
+    private:
         element_t *m_ptr = nullptr;
         const std::size_t (&m_boundary_arr)[dimension];
-        std::size_t num = 0;
 
+    public:
         bracket_impl(element_t *ptr, const std::size_t (&boundary_arr)[dimension]) : m_ptr(ptr), m_boundary_arr(boundary_arr){};
+
+        const element_t& operator*() const noexcept {return *m_ptr;}
+        element_t& operator*() noexcept {return *m_ptr;}
+        const element_t* operator->() const noexcept {return m_ptr;}
+        element_t* operator->() noexcept {return m_ptr;}
 
         bool is_out_of_rangge(std::size_t idx) const
         {
@@ -118,7 +124,7 @@ private:
             return x <= idx;
         }
 
-        auto operator[](std::size_t idx) const noexcept
+        decltype(auto) operator[](std::size_t idx) const noexcept
         {
             assert(is_out_of_rangge(idx) == false);
 
@@ -126,18 +132,15 @@ private:
             for(std::size_t i = dimension - cnt + 1 ; i < dimension ; i++)
                 dim_size *= m_boundary_arr[i];
 
-            Deferred_array<element_t, dimension>::bracket_impl<cnt - 1> ret{m_ptr, m_boundary_arr};
-            ret.num = this->num + idx*dim_size;
+            Deferred_array<element_t, dimension>::bracket_impl<cnt - 1> ret{m_ptr + idx*dim_size, m_boundary_arr};
 
             if constexpr (cnt > 1)
                 return ret;
             else
-                return std::ref(ret.m_ptr[ret.num]);
+                return *ret.m_ptr;
         }
+        friend class Deferred_array<element_t, dimension>::bracket_impl<cnt+1>;
     };
-
-
-
     element_t *m_data;
     std::size_t m_dimension_boundary[dimension] = {0};
 };
