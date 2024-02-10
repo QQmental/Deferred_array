@@ -9,5 +9,6 @@ c++17
 # build test
 g++ test.cpp -std=c++17 -Wall -o test
 
+you can uncomment "assert(is_out_of_rangge(idx) == false);" to enable boundary check
 # run test
 ./test
