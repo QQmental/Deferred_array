@@ -24,8 +24,11 @@ public:
 
         m_data_len = 1;
         for(auto &&bound : m_dimension_boundary)
+        {
+            assert(bound != 0);
             m_data_len *= bound;
-        
+        }
+    
         m_data = new element_t[data_len()];
     }
 
@@ -37,12 +40,7 @@ public:
         auto new_alloc = new char[sizeof(element_t) * data_len()];
         m_data = new(new_alloc)element_t;
 
-        for(std::size_t i = 0 ; i < data_len() ; i++)
-        {
-            auto dst_ptr = new (m_data)element_t;
-            auto src_ptr = new (src.m_data)element_t;
-            dst_ptr[i] = src_ptr[i];
-        }
+        std::copy(src.data(), src.data()+data_len(), data());
     }
 
     Deferred_array(Deferred_array<element_t, dimension> &&src)
@@ -72,12 +70,8 @@ public:
         auto new_alloc = new char[sizeof(element_t) * data_len()];
         m_data = new(new_alloc)element_t;
 
-        for(std::size_t i = 0 ; i < data_len() ; i++)
-        {
-            auto dst_ptr = new (m_data)element_t;
-            auto src_ptr = new (src.m_data)element_t;
-            dst_ptr[i] = src_ptr[i];
-        }
+        std::copy(src.data(), src.data()+data_len(), data());
+    
         return *this;
     }
 
@@ -143,9 +137,7 @@ private:
             if constexpr (cnt > 1)
             {
                 auto next_stride_length = m_stride_length/m_boundary_arr[dimension-cnt+1];
-
                 Deferred_array<element_t, dimension>::Ptr_impl<cnt - 1> ret{m_ptr + idx*m_stride_length, m_boundary_arr, next_stride_length};
-            
                 return ret;
             }
             else
