@@ -139,8 +139,7 @@ private:
         decltype(auto) operator[](std::size_t idx) const noexcept
         {
             //assert(is_out_of_rangge(idx) == false);
-
-            auto next_stride_length = m_stride_length/m_boundary_arr[dimension-cnt+1];
+            auto next_stride_length = m_stride_length/m_boundary_arr[dimension-cnt];
 
             Deferred_array<element_t, dimension>::Ptr_impl<cnt - 1> ret{m_ptr + idx*m_stride_length, m_boundary_arr, next_stride_length};
 
