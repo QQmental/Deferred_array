@@ -2,7 +2,8 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
-
+#include <new>
+#include <memory>
 template <class element_t, std::size_t dimension>
 class Deferred_array
 {
@@ -14,7 +15,7 @@ public:
         return m_data_len;
     }
 
-    Deferred_array() : m_data(nullptr), m_data_len(0){}
+    Deferred_array() : m_data(nullptr), m_dimension_boundary(0), m_data_len(0){}
 
     Deferred_array(const std::initializer_list<std::size_t> &list) 
     {
@@ -29,33 +30,36 @@ public:
             m_data_len *= bound;
         }
     
-        m_data = new element_t[data_len()];
+        m_data = reinterpret_cast<element_t*>(::operator new[](sizeof(element_t) * data_len()));
+        
+        std::uninitialized_default_construct_n(m_data, data_len());
     }
 
     Deferred_array(const Deferred_array<element_t, dimension> &src)
+                  :  m_data_len(src.data_len())
     {
         std::copy(std::begin(src.m_dimension_boundary), std::end(src.m_dimension_boundary), std::begin(m_dimension_boundary));
-        m_data_len = src.data_len();
 
-        auto new_alloc = new char[sizeof(element_t) * data_len()];
-        m_data = new(new_alloc)element_t;
-
-        std::copy(src.data(), src.data()+data_len(), data());
+        m_data = reinterpret_cast<element_t*>(::operator new[](sizeof(element_t) * data_len()));
+        
+        std::uninitialized_copy_n(src.data(), src.data_len(), data());
     }
 
     Deferred_array(Deferred_array<element_t, dimension> &&src)
+                  :  m_dimension_boundary(src.m_dimension_boundary),
+                     m_data_len(src.data_len())
     {
-        std::copy(std::begin(src.m_dimension_boundary), std::end(src.m_dimension_boundary), std::begin(m_dimension_boundary));
 
         m_data = src.m_data;
-        m_data_len = src.m_data_len;
 
         src.m_data = nullptr;
         src.m_data_len = 0;
     }
     ~Deferred_array()
     {
-        delete[] m_data;
+        for(std::size_t i = 0 ; i < data_len() ; i++)
+            m_data[i].~element_t();
+        ::operator delete[](m_data) ;
     }
     Deferred_array& operator=(const Deferred_array<element_t, dimension> &src)
     {
@@ -66,16 +70,15 @@ public:
         
         std::copy(std::begin(src.m_dimension_boundary), std::end(src.m_dimension_boundary), std::begin(m_dimension_boundary));
         m_data_len = src.m_data_len;
-
-        auto new_alloc = new char[sizeof(element_t) * data_len()];
-        m_data = new(new_alloc)element_t;
-
-        std::copy(src.data(), src.data()+data_len(), data());
+        
+        m_data = reinterpret_cast<element_t*>(::operator new[](sizeof(element_t) * data_len()));
+        
+        std::uninitialized_copy_n(src.data(), src.data_len(), data());
     
         return *this;
     }
 
-    Deferred_array& operator=(Deferred_array<element_t, dimension> &&src)
+    Deferred_array& operator=(Deferred_array<element_t, dimension> &&src) noexcept 
     {
         if (this == &src)
             return *this;
