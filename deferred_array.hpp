@@ -15,7 +15,7 @@ public:
         return m_data_len;
     }
 
-    Deferred_array() : m_data(nullptr), m_dimension_boundary(0), m_data_len(0){}
+    Deferred_array() : m_data(nullptr), m_dimension_boundary(), m_data_len(0){}
 
     Deferred_array(const std::initializer_list<std::size_t> &list) 
     {
