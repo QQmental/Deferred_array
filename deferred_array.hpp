@@ -45,7 +45,7 @@ public:
         std::uninitialized_copy_n(src.data(), src.data_len(), data());
     }
 
-    Deferred_array(Deferred_array<element_t, dimension> &&src)
+    Deferred_array(Deferred_array<element_t, dimension> &&src) noexcept
                   :  m_dimension_boundary(src.m_dimension_boundary),
                      m_data_len(src.data_len())
     {
