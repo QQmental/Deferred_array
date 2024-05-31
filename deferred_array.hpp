@@ -99,15 +99,22 @@ public:
     const element_t* data() const noexcept {return m_data;}
     const element_t* cdata() noexcept {return m_data;}
     element_t* data() noexcept {return m_data;}
-    
-    auto operator[](int idx) const noexcept 
+
+    decltype(auto) operator[](int idx) noexcept 
     {
         auto ptr_stride_length = data_len()/m_dimension_boundary[0];
-        auto ret = Deferred_array<element_t, dimension>::Ptr_impl<dimension>{m_data, m_dimension_boundary, ptr_stride_length}[idx];
+        decltype(auto) ret = Deferred_array<element_t, dimension>::Ptr_impl<dimension>{m_data, m_dimension_boundary, ptr_stride_length}[idx];
         return ret;
     }
 
-private:
+    decltype(auto) operator[](int idx) const noexcept 
+    {
+        auto ptr_stride_length = data_len()/m_dimension_boundary[0];
+        const Deferred_array<element_t, dimension>::Ptr_impl<dimension> t{m_data, m_dimension_boundary, ptr_stride_length};
+        return t[idx];
+    }
+
+public:
     template<std::size_t cnt>
     class Ptr_impl
     {
@@ -133,7 +140,7 @@ private:
             return x <= idx;
         }
 
-        decltype(auto) operator[](std::size_t idx) const noexcept
+        decltype(auto) operator[](std::size_t idx) noexcept
         {
             //assert(is_out_of_rangge(idx) == false);
             
@@ -146,9 +153,24 @@ private:
             else
                 return m_ptr[idx];
         }
+
+        decltype(auto) operator[](std::size_t idx) const noexcept
+        {
+            //assert(is_out_of_rangge(idx) == false);
+            if constexpr (cnt > 1)
+            {
+                auto next_stride_length = m_stride_length/m_boundary_arr[dimension-cnt+1];
+                const Deferred_array<element_t, dimension>::Ptr_impl<cnt - 1> ret{m_ptr + idx*m_stride_length, m_boundary_arr, next_stride_length};
+                return ret;
+            }
+            else
+                return *(const_cast<const element_t*>(&m_ptr[idx]));                
+        }
+
         friend Deferred_array<element_t, dimension>::Ptr_impl<cnt+1>;
     };
     element_t *m_data;
     std::size_t m_dimension_boundary[dimension] = {0};
     std::size_t m_data_len;
 };
+
