@@ -22,14 +22,10 @@ int main()
     Deferred_array<int, 3> arr2;
     arr2 = arr; // copy all element
 
-    #define indexies [3][2][2]
+    #define indexies [4][5][6]
     
-    auto x = arr indexies;
-    auto y = arr2 indexies;
     int (*p)[5][6] = reinterpret_cast<int(*)[5][6]>(arr2.data());
    
-    std::cout << x  << " " << y << " " << p indexies<< "\n";
-
     for(std::size_t i = 0 ; i < a ; i++)
     {
         for(std::size_t j = 0 ; j < b ; j++)
