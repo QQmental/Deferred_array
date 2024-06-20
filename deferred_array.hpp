@@ -1,9 +1,7 @@
 #include <initializer_list>
-#include <assert.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <new>
 #include <memory>
+#include <array>
 template <class element_t, std::size_t dimension>
 class Deferred_array
 {
@@ -20,8 +18,8 @@ public:
     Deferred_array(const std::initializer_list<std::size_t> &list) 
     {
         assert(list.size() == dimension);
-        
-        std::copy(std::begin(list), std::end(list), std::begin(m_dimension_boundary));
+               
+       std::copy(std::begin(list), std::end(list), std::begin(m_dimension_boundary));
 
         m_data_len = 1;
         for(auto &&bound : m_dimension_boundary)
@@ -120,11 +118,11 @@ public:
     {
     private:
         element_t *m_ptr = nullptr;
-        const std::size_t (&m_boundary_arr)[dimension];
+        const std::array<element_t, dimension> &m_boundary_arr;
         std::size_t m_stride_length;
 
     public:
-        Ptr_impl(element_t *ptr, const std::size_t (&boundary_arr)[dimension], std::size_t stride_length) 
+        Ptr_impl(element_t *ptr, const std::array<element_t, dimension> &boundary_arr, std::size_t stride_length) 
         : m_ptr(ptr), 
           m_boundary_arr(boundary_arr),
           m_stride_length(stride_length){};
@@ -170,7 +168,6 @@ public:
         friend Deferred_array<element_t, dimension>::Ptr_impl<cnt+1>;
     };
     element_t *m_data;
-    std::size_t m_dimension_boundary[dimension] = {0};
+    std::array<element_t, dimension> m_dimension_boundary;
     std::size_t m_data_len;
 };
-
