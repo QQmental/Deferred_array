@@ -2,6 +2,7 @@
 #include <new>
 #include <memory>
 #include <array>
+#include <assert.h>
 template <class element_t, std::size_t dimension>
 class Deferred_array
 {
@@ -13,7 +14,7 @@ public:
         return m_data_len;
     }
 
-    Deferred_array() : m_data(nullptr), m_dimension_boundary(), m_data_len(0){}
+    Deferred_array() : m_data(nullptr), m_stride_size(), m_data_len(0), m_dimension_boundary(){}
 
     Deferred_array(const std::initializer_list<std::size_t> &list) 
     {
@@ -23,6 +24,7 @@ public:
         m_data_len = 1;
         for(auto &&bound : m_dimension_boundary)
         {
+            assert(bound != 0);
             m_data_len *= bound;
         }
     
@@ -33,24 +35,21 @@ public:
     }
 
     Deferred_array(const Deferred_array<element_t, dimension> &src)
-                  :  m_data_len(src.data_len())
+                  :m_stride_size(src.m_stride_size),
+                   m_data_len(src.data_len()),
+                   m_dimension_boundary(src.m_dimension_boundary)
     {
-        std::copy(std::begin(src.m_dimension_boundary), std::end(src.m_dimension_boundary), std::begin(m_dimension_boundary));
-
-        std::copy(std::begin(src.m_stride_size), std::end(src.m_stride_size), std::begin(m_stride_size));
-
         m_data = reinterpret_cast<element_t*>(::operator new[](sizeof(element_t) * data_len()));
         
         std::uninitialized_copy_n(src.data(), src.data_len(), data());
     }
 
     Deferred_array(Deferred_array<element_t, dimension> &&src) noexcept
-                  :  m_dimension_boundary(src.m_dimension_boundary),
-                     m_data_len(src.data_len())
+                  :m_data(src.m_data),
+                   m_stride_size(src.m_stride_size), 
+                   m_data_len(src.data_len()),
+                   m_dimension_boundary(src.m_dimension_boundary)
     {
-
-        m_data = src.m_data;
-
         src.m_data = nullptr;
         src.m_data_len = 0;
         src.m_dimension_boundary = {};
@@ -62,48 +61,25 @@ public:
             m_data[i].~element_t();
         ::operator delete[](m_data) ;
     }
-    Deferred_array& operator=(const Deferred_array<element_t, dimension> &src)
+
+    friend void swap(Deferred_array<element_t, dimension> &lhs, Deferred_array<element_t, dimension> &rhs) noexcept
     {
-        if (this == &src)
-            return *this;
-
-        this->~Deferred_array();
-        
-        std::copy(std::begin(src.m_dimension_boundary), std::end(src.m_dimension_boundary), std::begin(m_dimension_boundary));
-        m_data_len = src.m_data_len;
-        std::copy(std::begin(src.m_stride_size), std::end(src.m_stride_size), std::begin(m_stride_size));
-
-        m_data = reinterpret_cast<element_t*>(::operator new[](sizeof(element_t) * data_len()));
-        
-        std::uninitialized_copy_n(src.data(), src.data_len(), data());
-    
-        return *this;
+        std::swap(lhs.m_dimension_boundary, rhs.m_dimension_boundary);
+        std::swap(lhs.m_stride_size, rhs.m_stride_size);
+        std::swap(lhs.m_data, rhs.m_data);
+        std::swap(lhs.m_data_len, rhs.m_data_len);
     }
 
-    Deferred_array& operator=(Deferred_array<element_t, dimension> &&src) noexcept 
+    Deferred_array& operator=(Deferred_array<element_t, dimension> src)
     {
-        if (this == &src)
-            return *this;
-
-        this->~Deferred_array();
-        
-        std::copy(std::begin(src.m_dimension_boundary), std::end(src.m_dimension_boundary), std::begin(m_dimension_boundary));
-    
-        m_data = src.m_data;
-        m_data_len = src.m_data_len;
-        std::copy(std::begin(src.m_stride_size), std::end(src.m_stride_size), std::begin(m_stride_size));
-
-        src.m_data = nullptr;
-        src.m_data_len = 0 ;
-        src.m_dimension_boundary = {};
-        src.m_stride_size = {};
-
+        swap(*this, src);
         return *this;
     }
 
     const element_t* data() const noexcept {return m_data;}
     const element_t* cdata() noexcept {return m_data;}
     element_t* data() noexcept {return m_data;}
+    const element_t* cdata() const noexcept {return m_data;}
 
     decltype(auto) operator[](int idx) noexcept 
     {
@@ -130,10 +106,10 @@ public:
         Ptr_impl(element_t *ptr, 
                  const std::array<std::size_t, dimension> &boundary_arr,
                  const std::array<std::size_t, dimension> &stride_size_arr) 
-        : m_ptr(ptr),
-          m_stride_size_arr(stride_size_arr),
-          m_boundary_arr(boundary_arr)
-          {};
+                :m_ptr(ptr),
+                 m_stride_size_arr(stride_size_arr),
+                 m_boundary_arr(boundary_arr)
+                 {};
 
         const element_t& operator*() const noexcept {return *m_ptr;}
         element_t& operator*() noexcept {return *m_ptr;}
